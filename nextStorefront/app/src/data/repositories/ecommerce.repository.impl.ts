@@ -2,13 +2,14 @@ import { Product } from '../../domain/entities/product';
 import { EcommerceRepository } from '../../domain/repositories/ecommerce.repository';
 import { Either, left, right } from '../../shared/utils/either';
 import { Provider } from '../providers/provider.factory';
+import { ProductFetchInput } from '../providers/vtex/vtex.types/vtex.products.types';
 
 export class EcommerceRepositoryImpl implements EcommerceRepository {
   constructor(private provider: Provider) {}
 
-  async getProducts(): Promise<Either<Error, Product[]>> {
+  async getProducts(input: ProductFetchInput | any): Promise<Either<Error, Product[]>> {
     try {
-      const products = await this.provider.fetchProducts();
+      const products = await this.provider.fetchProducts(input);
       return right(products); 
     } catch (error: any) {
       return left(new Error(`Failed to fetch products: ${error.message}`));

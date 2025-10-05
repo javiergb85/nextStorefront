@@ -159,3 +159,17 @@ export interface Specification {
     originalName: string;
     values: string[];
 }
+
+
+
+export interface ProductFetchInput {
+    query?: string;
+    fullText?: string;
+    map?: string;
+    selectedFacets?: { key: string; value: string }[];
+    orderBy?: string;
+    priceRange?: string;
+    from?: number; // Índice inicial (paginación)
+    to?: number; // Índice final (paginación)
+    collection?: string;
+}

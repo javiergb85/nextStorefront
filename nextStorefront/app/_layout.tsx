@@ -62,9 +62,14 @@ export default function RootLayout() {
             name="index" 
             options={{ headerShown: false }} 
           />
+          
           <Stack.Screen 
             name="[slug]"
             options={{ headerShown: false }}
+          />
+          <Stack.Screen 
+            name="[...vtexPath]" // El nombre coincide con el directorio 'app/search/'
+            options={{ headerShown: false }} // Ajusta las opciones según necesites
           />
           <Stack.Screen name="login" options={{ headerShown: false }} /> 
           <Stack.Screen name="+not-found" />

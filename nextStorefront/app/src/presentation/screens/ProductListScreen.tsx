@@ -1,7 +1,7 @@
 // src/presentation/screens/ProductListScreen.tsx
 
-import { Link } from 'expo-router'; // 👈 Importa Link de expo-router
-import React, { useEffect } from 'react';
+import { Link } from "expo-router"; // 👈 Importa Link de expo-router
+import React, { useEffect } from "react";
 import {
   ActivityIndicator,
   Dimensions,
@@ -11,14 +11,19 @@ import {
   Text,
   TouchableOpacity,
   View,
-} from 'react-native';
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Product as DomainProduct } from '../../domain/entities/product';
+import { Product as DomainProduct } from "../../domain/entities/product";
 //import { useProductStore } from '../../store/product.store';
-import { useStorefront } from '../../context/storefront.context';
+import { useStorefront } from "../../context/storefront.context";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 const itemWidth = (width - 48) / 2;
+
+interface ProductListScreenProps {
+  searchInput: any;
+  loadNextPage: () => void;
+}
 
 const QuantitySelector = ({
   quantity,
@@ -42,7 +47,8 @@ const QuantitySelector = ({
 
 // Pasa navigation a ProductCard para que pueda navegar
 const ProductCard = ({ product }: { product: DomainProduct }) => {
-  const { items, addItem, updateItemQuantity, removeItem } = useStorefront().useOrderFormStore();
+  const { items, addItem, updateItemQuantity, removeItem } =
+    useStorefront().useOrderFormStore();
   const cartItem = items.find((item) => item.id === product.id);
 
   const handleIncrease = () => {
@@ -63,21 +69,28 @@ const ProductCard = ({ product }: { product: DomainProduct }) => {
     addItem(product.id, 1);
   };
 
- 
   return (
     // 👈 Usa el componente Link para navegar a la PDP
     // La ruta debe ser la que definas para la PDP, por ejemplo: [slug].tsx
-     <Link href={{ pathname: '/[slug]', params: { slug: encodeURIComponent(product?.slug || '') || product?.slug } }} asChild>
-      <TouchableOpacity
-        style={styles.card}
-      >
+    <Link
+      href={{
+        pathname: "/[slug]",
+        params: {
+          slug: encodeURIComponent(product?.slug || "") || product?.slug,
+        },
+      }}
+      asChild
+    >
+      <TouchableOpacity style={styles.card}>
         <Image
           source={{ uri: product.images[0] }}
           style={styles.productImage}
           resizeMode="contain"
         />
         <View style={styles.textContainer}>
-          <Text style={styles.productName} numberOfLines={2}>{product.name}</Text>
+          <Text style={styles.productName} numberOfLines={2}>
+            {product.name}
+          </Text>
           <Text style={styles.productPrice}>${product.price.toFixed(2)}</Text>
           {cartItem ? (
             <QuantitySelector
@@ -99,31 +112,50 @@ const ProductCard = ({ product }: { product: DomainProduct }) => {
   );
 };
 
-const ProductListScreen = () => {
+const ProductListScreen: React.FC<ProductListScreenProps> = ({
+  searchInput,
+  loadNextPage,
+}) => {
   const insets = useSafeAreaInsets();
 
-   const { products, isLoading, error, fetchProducts } = useStorefront().useProductStore();
-     const { logout } = useStorefront().useLoginStore(); 
-//  const { products, isLoading, error, fetchProducts } = useProductStore();
+  // Ya no se necesitan 'params', 'pathSegments', 'utils' ni 'useMemo' aquí
+  const { useProductStore, useLoginStore } = useStorefront();
 
+  const { products, isLoading, error, fetchProducts, isFetchingMore } =
+    useProductStore();
+  const { logout } = useLoginStore();
 
- // 💡 Componente de encabezado personalizado
+  // Componente de encabezado personalizado
   const CustomHeader = () => (
     <View style={[styles.headerContainer, { paddingTop: insets.top }]}>
       <Text style={styles.headerTitle}>Catálogo</Text>
-      <TouchableOpacity 
-        onPress={logout} // 💡 Llama a la acción de logout
-        style={styles.logoutButton}
-      >
+      <TouchableOpacity onPress={logout} style={styles.logoutButton}>
         <Text style={styles.logoutButtonText}>Cerrar Sesión</Text>
       </TouchableOpacity>
     </View>
   );
- 
+
+  const handleLoadMore = () => {
+    // Solo llama a loadNextPage si no estás cargando actualmente
+    // y si la lista de productos no está vacía (para evitar llamadas iniciales)
+    if (!isLoading && !isFetchingMore && products.length > 0) {
+      loadNextPage();
+    }
+  };
+
+  const FooterLoader = () => {
+    // Asume que tu store tiene un estado para "isFetchingMore"
+    if (!isFetchingMore) return null;
+    return (
+      <View style={{ paddingVertical: 20 }}>
+        <ActivityIndicator size="small" color="#007BFF" />
+      </View>
+    );
+  };
+  // 💡 useEffect usa la prop searchInput directamente
   useEffect(() => {
-  
-    fetchProducts();
-  }, [fetchProducts]);
+    fetchProducts(searchInput);
+  }, [fetchProducts, searchInput]);
 
   if (isLoading) {
     return (
@@ -139,7 +171,7 @@ const ProductListScreen = () => {
       <View style={styles.centered}>
         <Text style={styles.errorText}>
           ❌ ¡Ocurrió un error!
-          {'\n'}
+          {"\n"}
           {error}
         </Text>
       </View>
@@ -153,7 +185,7 @@ const ProductListScreen = () => {
         { paddingTop: insets.top, paddingBottom: insets.bottom },
       ]}
     >
-       <CustomHeader />
+      <CustomHeader />
       <View style={styles.container}>
         <FlatList
           data={products}
@@ -162,6 +194,9 @@ const ProductListScreen = () => {
           numColumns={2}
           columnWrapperStyle={styles.row}
           contentContainerStyle={styles.list}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={<FooterLoader />}
         />
       </View>
     </View>
@@ -176,57 +211,57 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: "#FAFAFA",
   },
   centered: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
-    headerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  headerContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 16,
     paddingBottom: 10,
-    backgroundColor: '#fff', 
+    backgroundColor: "#fff",
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: "#eee",
     // paddingTop: insets.top se maneja directamente en el componente
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: "bold",
+    color: "#333",
   },
   logoutButton: {
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 5,
-    backgroundColor: '#dc3545', // Rojo
+    backgroundColor: "#dc3545", // Rojo
   },
   logoutButtonText: {
-    color: 'white',
-    fontWeight: '600',
+    color: "white",
+    fontWeight: "600",
     fontSize: 14,
   },
   row: {
-    justifyContent: 'space-between',
+    justifyContent: "space-between",
   },
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 8,
     margin: 8,
-    overflow: 'hidden',
+    overflow: "hidden",
     width: itemWidth,
     elevation: 3,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
   productImage: {
-    width: '100%',
+    width: "100%",
     height: 150,
   },
   textContainer: {
@@ -234,52 +269,52 @@ const styles = StyleSheet.create({
   },
   productName: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
+    fontWeight: "600",
+    color: "#333",
     minHeight: 40,
   },
   productPrice: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#4CAF50',
+    fontWeight: "bold",
+    color: "#4CAF50",
     marginTop: 5,
   },
   addToCartButton: {
-    backgroundColor: '#007BFF',
+    backgroundColor: "#007BFF",
     padding: 10,
     borderRadius: 5,
     marginTop: 10,
-    alignItems: 'center',
+    alignItems: "center",
   },
   addToCartButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
+    color: "#fff",
+    fontWeight: "bold",
   },
   quantitySelectorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     marginTop: 10,
   },
   quantityButton: {
-    backgroundColor: '#ddd',
+    backgroundColor: "#ddd",
     padding: 8,
     borderRadius: 5,
     marginHorizontal: 5,
   },
   quantityButtonText: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#555',
+    fontWeight: "bold",
+    color: "#555",
   },
   quantityText: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginHorizontal: 10,
   },
   errorText: {
-    color: 'red',
-    textAlign: 'center',
+    color: "red",
+    textAlign: "center",
   },
   list: {
     paddingVertical: 16,

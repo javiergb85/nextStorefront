@@ -5,10 +5,11 @@ import { VtexProvider } from './vtex/vtex.provider';
 import { Product } from '../../domain/entities/product';
 import { AuthRepository } from '../../domain/repositories/auth.repository';
 import { EcommerceRepository } from '../../domain/repositories/ecommerce.repository';
+import { ProductFetchInput } from './vtex/vtex.types/vtex.products.types';
 
 
 export interface Provider extends AuthRepository {
-  fetchProducts(): Promise<Product[]>;
+  fetchProducts(input: ProductFetchInput | any): Promise<Product[]>;
   fetchProduct(slug: string): Promise<Product | null>;
   addToCart(productId: string, quantity: number): Promise<boolean>;
   placeOrder(): Promise<boolean>;

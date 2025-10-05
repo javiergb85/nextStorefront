@@ -1,10 +1,10 @@
 import React, { createContext, ReactNode, useContext, useMemo } from "react";
 import { initializeServices } from "../di";
+import * as vtexSearchUtils from '../shared/utils/vtex-search.utils';
 import { createLoginStore } from "../store/createLoginStore";
 import { createOrderFormStore } from "../store/createOrderFormState";
 import { createProductDetailStore } from "../store/createProductDetailStore";
 import { createProductStore } from "../store/createProductStore";
-
 // 💡 Interfaz necesaria para la API del store (debe estar disponible globalmente)
 interface LoginStoreApi {
     getState: () => {
@@ -29,6 +29,11 @@ interface StorefrontHooks {
   useLoginStore: ReturnType<typeof createLoginStore>;
   useProductDetailStore: ReturnType<typeof createProductDetailStore>;
   useOrderFormStore: ReturnType<typeof createOrderFormStore>; 
+  utils: {
+    vtexSearch: typeof vtexSearchUtils;
+    // Aquí puedes añadir otras utilidades generales
+    // formatters: typeof formatters;
+  };
 }
 
 const StorefrontContext = createContext<StorefrontHooks | undefined>(undefined);
@@ -77,6 +82,9 @@ export const StorefrontProvider: React.FC<StorefrontProviderProps> = ({
         services.getProductDetailUseCase
       ),
       useOrderFormStore: createOrderFormStore(),
+        utils: {
+        vtexSearch: vtexSearchUtils,
+      },
     }),
     [services, useLoginStore]
   );

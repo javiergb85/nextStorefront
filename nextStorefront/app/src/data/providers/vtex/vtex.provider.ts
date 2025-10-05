@@ -13,7 +13,7 @@ import {
   mapVtexProductToDomain,
 } from "./vtex.mapper";
 import { VTEXProductClass } from "./vtex.types/vtex.product.types";
-import { Products as VtexProducts } from "./vtex.types/vtex.products.types";
+import { ProductFetchInput, Products as VtexProducts } from "./vtex.types/vtex.products.types";
 
 // 💡 Definición de la interfaz que necesitamos pasar
 interface LoginStoreApi {
@@ -67,16 +67,32 @@ export class VtexProvider implements AuthRepository {
   // (El código de login, fetchProducts, etc. no necesita cambios
   // porque usa this.apiCall, y el manejo del 401 está ahora en el fetcher.)
 
-  async fetchProducts(): Promise<DomainProduct[]> {
+  async fetchProducts(input: ProductFetchInput = {}): Promise<DomainProduct[]> {
     // ... (Tu implementación de fetchProducts)
     // ...
+
+     const defaultVariables = {
+          query: input.query,
+          queryFacets: input.query,
+          fullText: input.fullText,
+          map: input.map,
+          selectedFacets: input.selectedFacets || [],
+          orderBy: input.orderBy,
+          // Rango de precio por defecto (de 0 al máximo, si no se proporciona)
+          priceRange: input.priceRange || '0 TO 100000000000', 
+          from: input.from,
+          to: input.to,
+          // Parámetros fijos que VTEX requiere para el comportamiento de e-commerce:
+          hideUnavailableItems: true,
+          skusFilter: 'ALL_AVAILABLE',
+          installmentCriteria: 'MAX_WITHOUT_INTEREST',
+          collection: input.collection,
+      };
     const response: VtexProducts = await this.apiCall(undefined, {
       method: "POST",
       body: JSON.stringify({
         query: PRODUCT_SEARCH_QUERY,
-        variables: {
-          // Puedes pasar variables aquí si las necesitas
-        },
+        variables: defaultVariables,
       }),
     });
 
