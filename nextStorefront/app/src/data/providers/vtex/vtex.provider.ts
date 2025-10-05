@@ -1,7 +1,7 @@
 // src/data/providers/vtex.provider.ts
 
 import { AuthRepository } from "@/app/src/domain/repositories/auth.repository";
-import { saveVtexAuthCookies } from "@/app/src/shared/utils/auth-storage.util";
+import { saveVtexAuthCookies, saveVtexOrderFormId } from "@/app/src/shared/utils/auth-storage.util";
 import { Product as DomainProduct } from "../../../domain/entities/product";
 import { createFetcher } from "../../http/fetcher";
 import {
@@ -12,6 +12,7 @@ import {
   mapVtexProductDetailToDomain,
   mapVtexProductToDomain,
 } from "./vtex.mapper";
+import { VtexOrderForm } from "./vtex.types/vtex.orderform.types";
 import { VTEXProductClass } from "./vtex.types/vtex.product.types";
 import { ProductFetchInput, Products as VtexProducts } from "./vtex.types/vtex.products.types";
 
@@ -244,6 +245,23 @@ export class VtexProvider implements AuthRepository {
     // 3. Persistir el token final.
     await saveVtexAuthCookies(finalVtexToken);
 
+        try {
+        // Al loguearse, forzamos la creación de un nuevo OrderForm
+        // (o recuperamos uno si existe, si no pasamos ID se crea uno).
+        const orderForm = await this.getOrderForm();
+          console.log("orderForm", orderForm)
+        // Guardamos el orderFormId. Este ID se usará para construir la cookie
+        // 'checkout.vtex.com=__ofid={ID}' en futuras llamadas de carrito.
+        await saveVtexOrderFormId(orderForm.orderFormId); 
+        
+    } catch (e) {
+        // No lanzamos un error aquí, ya que el login fue exitoso.
+        // El usuario puede seguir navegando, pero sin un carrito asociado.
+        console.warn("Warning: Failed to create or persist OrderForm after successful login.", e);
+        // También puedes optar por borrar la autenticación si un carrito es CRÍTICO:
+        // await saveVtexAuthCookies(null); 
+    }
+
     return finalVtexToken;
   }
 
@@ -258,4 +276,50 @@ export class VtexProvider implements AuthRepository {
     console.log("Placing order on VTEX.");
     return true;
   }
+
+
+
+   public async getOrderForm(orderFormId?: string): Promise<VtexOrderForm> {
+    const ACCOUNT = this.accountName;
+    if (!ACCOUNT) {
+      throw new Error(
+        "VTEX Account name could not be determined for OrderForm API."
+      );
+    }
+
+    const orderFormUrl = `https://${ACCOUNT}.myvtex.com/api/checkout/pub/orderForm/${orderFormId || ''}`;
+    // Si orderFormId es vacío, VTEX lo interpreta como "crear nuevo".
+
+    try {
+      // Usamos fetch ya que es una API REST simple y maneja la cookie de checkout.
+      const response = await fetch(orderFormUrl, {
+        method: "GET",
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          `OrderForm API failed with status: ${response.status}.`
+        );
+      }
+
+      const orderFormJson: VtexOrderForm = await response.json();
+      
+      // La cookie 'checkout.vtex.com' se establece automáticamente si usas fetch/axios
+      // en un entorno web, PERO DEBEMOS ASUMIR QUE EN RN NO ES ASÍ y
+      // que el ID se obtendrá del JSON y se persistirá por separado.
+
+      return orderFormJson;
+
+    } catch (error) {
+      console.error("Error al obtener o crear orderForm:", error);
+      throw new Error(
+        `Failed to fetch or create OrderForm: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  }
+
 }

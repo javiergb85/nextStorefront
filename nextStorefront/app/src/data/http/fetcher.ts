@@ -1,4 +1,4 @@
-import { getAuthToken } from "../../shared/utils/auth-storage.util";
+import { getAuthToken, getVtexOrderFormId } from "../../shared/utils/auth-storage.util";
 
 interface FetcherConfig {
   baseUrl: string;
@@ -32,7 +32,9 @@ export const createFetcher = (config: FetcherConfig, loginStoreApi?: LoginStoreA
     }
 
     const authToken = await getAuthToken();
+    const orderFormId = await getVtexOrderFormId(); 
 
+    const cookies: string[] = [];
     // Lógica de configuración de encabezados (permanece igual)
     if (config.provider === "Shopify") {
       allHeaders.set("X-Shopify-Storefront-Access-Token", config?.accessToken);
@@ -47,6 +49,20 @@ export const createFetcher = (config: FetcherConfig, loginStoreApi?: LoginStoreA
       }
     }
 
+      if (config.provider === "Vtex" && orderFormId) {
+      
+        cookies.push(`checkout.vtex.com=__ofid=${orderFormId}`);
+    }
+
+      if (cookies.length > 0) {
+        // Si ya hay una cookie en options, la mantenemos y añadimos la nueva
+        const existingCookie = allHeaders.get("Cookie") || '';
+        const newCookie = cookies.join('; ');
+
+        allHeaders.set("Cookie", existingCookie ? `${existingCookie}; ${newCookie}` : newCookie);
+    }
+
+  console.log("orderForm.orderFormId)", allHeaders)
     const response = await fetch(url, {
       ...options,
       headers: allHeaders,

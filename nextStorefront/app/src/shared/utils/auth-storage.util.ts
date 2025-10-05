@@ -7,6 +7,7 @@ const VTEX_COOKIES_KEY = 'vtexAuthCookies';
 const VTEX_USER_EMAIL_KEY = 'vtexUserEmail';
 const VTEX_USER_PASSWORD_KEY = 'vtexUserPassword';
 const ACTIVE_PROVIDER_KEY = 'activeProvider';
+const VTEX_ORDER_FORM_ID_KEY = 'vtexOrderFormId'; 
 
 // Esta función es el nuevo punto de entrada para obtener un token de autenticación
 export const getAuthToken = async (): Promise<string | null> => {
@@ -60,6 +61,7 @@ export const clearAllAuthTokens = async (): Promise<void> => {
   try {
     await SecureStore.deleteItemAsync(SHOPIFY_TOKEN_KEY);
     await SecureStore.deleteItemAsync(VTEX_COOKIES_KEY);
+    await SecureStore.deleteItemAsync(VTEX_ORDER_FORM_ID_KEY);
     await clearVtexCredentials(); // Borra las credenciales guardadas
   } catch (e) {
     console.warn('Failed to clear auth storage.', e);
@@ -84,4 +86,21 @@ export const clearVtexCredentials = async (): Promise<void> => {
     await SecureStore.deleteItemAsync(VTEX_USER_EMAIL_KEY);
     await SecureStore.deleteItemAsync(VTEX_USER_PASSWORD_KEY);
     await SecureStore.deleteItemAsync(ACTIVE_PROVIDER_KEY);
+    
+};
+
+
+
+export const saveVtexOrderFormId = async (orderFormId: string | null): Promise<void> => {
+    if (orderFormId) {
+        // Almacena solo el ID. La lógica de formar la cookie '__ofid={ID}' se hace en el Provider.
+        await SecureStore.setItemAsync(VTEX_ORDER_FORM_ID_KEY, orderFormId);
+    } else {
+        await SecureStore.deleteItemAsync(VTEX_ORDER_FORM_ID_KEY);
+    }
+};
+
+// 💡 FUNCIÓN NUEVA: Obtener el OrderFormId
+export const getVtexOrderFormId = async (): Promise<string | null> => {
+    return SecureStore.getItemAsync(VTEX_ORDER_FORM_ID_KEY);
 };
