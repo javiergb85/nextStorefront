@@ -1,8 +1,8 @@
 // src/store/product.store.ts
 
 import { create } from 'zustand';
-import { getProductsUseCase } from '../di';
-import { Product } from '../domain/entities/product';
+import { getProductsUseCase } from '../../di';
+import { Product } from '../../domain/entities/product';
 
 interface ProductState {
   products: Product[];
@@ -20,7 +20,7 @@ export const useProductStore = create<ProductState>((set) => ({
     set({ isLoading: true, error: null });
 
     const result = await getProductsUseCase.execute();
-    
+      
     result.fold(
       (err) => {
         // En caso de error, actualiza el estado de error
@@ -41,3 +41,5 @@ export const useProductStore = create<ProductState>((set) => ({
     );
   },
 }));
+
+

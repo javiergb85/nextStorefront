@@ -7,8 +7,20 @@ interface FetcherConfig {
   accessToken: string;
 }
 
-export const createFetcher = (config: FetcherConfig) => {
-  const fetcher = async (path?: string, options?: RequestInit) => {
+// 💡 Interfaz para la API del store que necesitamos
+interface LoginStoreApi {
+    getState: () => {
+        logout: () => void;
+        revalidateAuth: () => Promise<boolean>;
+    };
+}
+
+// 💡 MODIFICACIÓN: createFetcher ahora acepta loginStoreApi como parámetro OPCIONAL.
+export const createFetcher = (config: FetcherConfig, loginStoreApi?: LoginStoreApi) => {
+ 
+  const getState = loginStoreApi ? loginStoreApi.getState : undefined;
+  // 💡 Definición de la función fetcher (ahora recursiva)
+  const fetcher = async (path?: string, options?: RequestInit, isRetry = false): Promise<any> => {
    
     const url = path ? `${config.baseUrl}${path}` : config.baseUrl;
     const allHeaders = new Headers(config.headers);
@@ -21,8 +33,7 @@ export const createFetcher = (config: FetcherConfig) => {
 
     const authToken = await getAuthToken();
 
-    // Ahora, el fetcher valida el proveedor antes de añadir el encabezado de autenticación.
-
+    // Lógica de configuración de encabezados (permanece igual)
     if (config.provider === "Shopify") {
       allHeaders.set("X-Shopify-Storefront-Access-Token", config?.accessToken);
     }
@@ -32,7 +43,6 @@ export const createFetcher = (config: FetcherConfig) => {
       } else if (config.provider === "Vtex") {
         allHeaders.set("VtexIdclientAutCookie", authToken);
       } else {
-        // En caso de que se necesite, puedes agregar un encabezado genérico de autorización
         allHeaders.set("Authorization", `Bearer ${authToken}`);
       }
     }
@@ -41,20 +51,64 @@ export const createFetcher = (config: FetcherConfig) => {
       ...options,
       headers: allHeaders,
     });
-    // console.log("fetcher token, ", url, {
-    //       ...options,
-    //       headers: allHeaders,
-    //     })
+    
+    console.log("response.ok ", response);
 
-    console.log("response.ok ",response)
-
+    // 🚨 LÓGICA DE REVALIDACIÓN Y GESTIÓN DE ERRORES 🚨
  
+    // 1. Manejo del token expirado (Status 401)
+    if (response.status === 401) {
+        
+        // 🚨 CRÍTICO: Si no se inyectó la API, no podemos hacer nada.
+        if (!loginStoreApi) {
+             console.log("401 detectado, pero Login API no inyectada. No se puede revalidar.");
+             throw new Error("Authentication required. Login API not available.");
+        }
+        
+        const loginState = loginStoreApi.getState(); // Acceso al estado inyectado
+        
+        // Evitar bucles infinitos de reintento
+        if (isRetry) {
+             console.log("Token revalidado falló en el reintento. Forzando logout.");
+             getState?.().logout(); 
+             throw new Error("Authentication failed after revalidation attempt.");
+        }
+
+        // 💡 Solo intentamos revalidar si el proveedor es VTEX
+        if (config.provider === "Vtex" && getState) {
+            console.log("401 detectado en VTEX. Intentando revalidación...");
+            
+            // Llama a la acción revalidateAuth del store inyectado
+           const revalidateAuth = getState().revalidateAuth;
+            
+            try {
+                const revalidated = await revalidateAuth();
+                
+                if (revalidated) {
+                    console.log("Revalidación exitosa. Reintentando llamada original.");
+                    // Reintenta la llamada original con el nuevo token (isRetry = true)
+                    return fetcher(path, options, true); 
+                }
+            } catch (e) {
+                // revalidateAuth maneja el error de relogin fallido forzando el logout
+                console.error("Revalidación fallida:", e);
+                throw new Error("Authentication revalidation failed.");
+            }
+        }
+        
+        // Si no es VTEX, o si es VTEX pero no se pudo revalidar:
+        console.log("401 detectado. Forzando logout.");
+        loginState.logout(); 
+        throw new Error("Authentication required.");
+    }
+    
+    // 2. Manejo de errores genéricos (No 401)
     if (!response.ok) {
       let errorData;
       try {
         errorData = await response.json();
       } catch (e) {
-        errorData = { message: "Unknown error, could not parse JSON." };
+        errorData = { message: `Unknown error, status ${response.status}. Could not parse JSON.` };
       }
       throw new Error(
         `API error! Status: ${response.status}. Message: ${JSON.stringify(

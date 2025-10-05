@@ -1,4 +1,4 @@
-// src/app/ProductListScreen.tsx
+// src/presentation/screens/ProductListScreen.tsx
 
 import { Link } from 'expo-router'; // 👈 Importa Link de expo-router
 import React, { useEffect } from 'react';
@@ -14,8 +14,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Product as DomainProduct } from '../../domain/entities/product';
-import { useOrderFormStore } from '../../store/order-form.store';
-import { useProductStore } from '../../store/product.store';
+//import { useProductStore } from '../../store/product.store';
+import { useStorefront } from '../../context/storefront.context';
 
 const { width } = Dimensions.get('window');
 const itemWidth = (width - 48) / 2;
@@ -42,7 +42,7 @@ const QuantitySelector = ({
 
 // Pasa navigation a ProductCard para que pueda navegar
 const ProductCard = ({ product }: { product: DomainProduct }) => {
-  const { items, addItem, updateItemQuantity, removeItem } = useOrderFormStore();
+  const { items, addItem, updateItemQuantity, removeItem } = useStorefront().useOrderFormStore();
   const cartItem = items.find((item) => item.id === product.id);
 
   const handleIncrease = () => {
@@ -101,9 +101,27 @@ const ProductCard = ({ product }: { product: DomainProduct }) => {
 
 const ProductListScreen = () => {
   const insets = useSafeAreaInsets();
-  const { products, isLoading, error, fetchProducts } = useProductStore();
 
+   const { products, isLoading, error, fetchProducts } = useStorefront().useProductStore();
+     const { logout } = useStorefront().useLoginStore(); 
+//  const { products, isLoading, error, fetchProducts } = useProductStore();
+
+
+ // 💡 Componente de encabezado personalizado
+  const CustomHeader = () => (
+    <View style={[styles.headerContainer, { paddingTop: insets.top }]}>
+      <Text style={styles.headerTitle}>Catálogo</Text>
+      <TouchableOpacity 
+        onPress={logout} // 💡 Llama a la acción de logout
+        style={styles.logoutButton}
+      >
+        <Text style={styles.logoutButtonText}>Cerrar Sesión</Text>
+      </TouchableOpacity>
+    </View>
+  );
+ 
   useEffect(() => {
+  
     fetchProducts();
   }, [fetchProducts]);
 
@@ -135,6 +153,7 @@ const ProductListScreen = () => {
         { paddingTop: insets.top, paddingBottom: insets.bottom },
       ]}
     >
+       <CustomHeader />
       <View style={styles.container}>
         <FlatList
           data={products}
@@ -163,6 +182,33 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+    headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+    backgroundColor: '#fff', 
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    // paddingTop: insets.top se maneja directamente en el componente
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  logoutButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 5,
+    backgroundColor: '#dc3545', // Rojo
+  },
+  logoutButtonText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 14,
   },
   row: {
     justifyContent: 'space-between',

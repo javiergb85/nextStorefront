@@ -1,11 +1,12 @@
 
 
+import { useStorefront } from '../../context/storefront.context';
 import { AddToCartUseCase } from '../../domain/use-cases/add-to-cart.use-case';
-import { useOrderFormStore } from '../../store/order-form.store';
+
 
 
 export const useCart = (addToCartUseCase: AddToCartUseCase) => {
-  const addItemToLocalCart = useOrderFormStore((state) => state.addItem);
+  const addItemToLocalCart = useStorefront().useOrderFormStore((state) => state.addItem);
 
   const addItemToCart = async (product) => {
     // 1. Optimistic UI: Actualiza la UI de inmediato.

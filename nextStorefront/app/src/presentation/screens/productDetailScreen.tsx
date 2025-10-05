@@ -1,14 +1,15 @@
 import React, { useEffect } from 'react';
 import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import HTML from 'react-native-render-html';
-import { useOrderFormStore } from '../../store/order-form.store';
-import { useProductDetailStore } from '../../store/productDetail.store';
+//import { useProductDetailStore } from '../../store/productDetail.store';
+import { useStorefront } from '../../context/storefront.context';
 
 interface ProductDetailScreenProps {
   productId: string;
 }
 
 const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({ productId }) => {
+const { useProductDetailStore, useOrderFormStore } = useStorefront();
   const { product, isLoading, error, fetchProductDetail } = useProductDetailStore();
   const { addItem } = useOrderFormStore();
   const { width } = useWindowDimensions(); // 👈 Call the hook here

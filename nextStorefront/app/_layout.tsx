@@ -7,12 +7,13 @@ import { ActivityIndicator, View } from 'react-native';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { useLoginStore } from './src/store/login.store';
-
+import { StorefrontProvider, useStorefront } from './src/context/storefront.context';
+import config from "./src/providers.json";
+ 
 // Lógica de autenticación centralizada
 const AuthGuard = ({ children }: { children: React.ReactNode }) => {
   const segments = useSegments();
-  const { accessToken, isLoading, initializeAuth } = useLoginStore();
+  const { accessToken, isLoading, initializeAuth } = useStorefront().useLoginStore();
   const inLoginRoute = segments[0] === 'login';
 
   useEffect(() => {
@@ -53,7 +54,7 @@ export default function RootLayout() {
   }
  
   return (
-   
+    <StorefrontProvider config={config}>
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <AuthGuard>
         <Stack>
@@ -71,6 +72,6 @@ export default function RootLayout() {
       </AuthGuard>
       <StatusBar style="auto" />
     </ThemeProvider>
-    
+    </StorefrontProvider>
   );
 }

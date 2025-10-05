@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { loginUseCase } from '../di';
-import { getAuthToken } from '../shared/utils/auth-storage.util';
+import { loginUseCase } from '../../di';
+import { getAuthToken } from '../../shared/utils/auth-storage.util';
 
 interface LoginState {
   accessToken: string | null;

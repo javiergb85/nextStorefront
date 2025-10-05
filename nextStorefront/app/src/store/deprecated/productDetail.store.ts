@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { getProductDetailUseCase } from '../di';
-import { Product } from '../domain/entities/product';
+import { getProductDetailUseCase } from '../../di';
+import { Product } from '../../domain/entities/product';
 
 
 interface ProductDetailState {

@@ -4,6 +4,9 @@ import * as SecureStore from 'expo-secure-store';
 
 const SHOPIFY_TOKEN_KEY = 'shopifyAccessToken';
 const VTEX_COOKIES_KEY = 'vtexAuthCookies';
+const VTEX_USER_EMAIL_KEY = 'vtexUserEmail';
+const VTEX_USER_PASSWORD_KEY = 'vtexUserPassword';
+const ACTIVE_PROVIDER_KEY = 'activeProvider';
 
 // Esta función es el nuevo punto de entrada para obtener un token de autenticación
 export const getAuthToken = async (): Promise<string | null> => {
@@ -35,10 +38,50 @@ export const saveShopifyAccessToken = async (token: string | null) => {
   }
 };
 
+// 💡 FUNCIÓN DE AYUDA: Para saber el proveedor activo
+export const getActiveProvider = async (): Promise<string | null> => {
+    return SecureStore.getItemAsync(ACTIVE_PROVIDER_KEY);
+};
+
+// 💡 ACTUALIZACIÓN: saveVtexAuthCookies debe guardar el proveedor.
+// (Opcional, pero bueno si usas getAuthToken/getActiveProvider)
 export const saveVtexAuthCookies = async (cookies: string | null) => {
   if (cookies) {
     await SecureStore.setItemAsync(VTEX_COOKIES_KEY, cookies);
+    await SecureStore.setItemAsync(ACTIVE_PROVIDER_KEY, 'Vtex'); 
   } else {
     await SecureStore.deleteItemAsync(VTEX_COOKIES_KEY);
+    await SecureStore.deleteItemAsync(ACTIVE_PROVIDER_KEY);
   }
+};
+
+
+export const clearAllAuthTokens = async (): Promise<void> => {
+  try {
+    await SecureStore.deleteItemAsync(SHOPIFY_TOKEN_KEY);
+    await SecureStore.deleteItemAsync(VTEX_COOKIES_KEY);
+    await clearVtexCredentials(); // Borra las credenciales guardadas
+  } catch (e) {
+    console.warn('Failed to clear auth storage.', e);
+  }
+};
+
+
+export const saveVtexCredentials = async (email: string, password: string): Promise<void> => {
+    // Es crucial usar SecureStore para la contraseña
+    await SecureStore.setItemAsync(VTEX_USER_EMAIL_KEY, email);
+    await SecureStore.setItemAsync(VTEX_USER_PASSWORD_KEY, password);
+    await SecureStore.setItemAsync(ACTIVE_PROVIDER_KEY, 'Vtex');
+};
+
+export const getVtexCredentials = async (): Promise<{ email: string | null; password: string | null }> => {
+    const email = await SecureStore.getItemAsync(VTEX_USER_EMAIL_KEY);
+    const password = await SecureStore.getItemAsync(VTEX_USER_PASSWORD_KEY);
+    return { email, password };
+};
+
+export const clearVtexCredentials = async (): Promise<void> => {
+    await SecureStore.deleteItemAsync(VTEX_USER_EMAIL_KEY);
+    await SecureStore.deleteItemAsync(VTEX_USER_PASSWORD_KEY);
+    await SecureStore.deleteItemAsync(ACTIVE_PROVIDER_KEY);
 };
